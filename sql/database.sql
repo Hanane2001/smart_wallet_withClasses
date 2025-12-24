@@ -8,3 +8,10 @@ CREATE TABLE IF NOT EXISTS users(
 );
 
 -- Create incomes table
+CREATE TABLE IF NOT EXISTS incomes(
+    idIn INT PRIMARY KEY AUTO_INCREMENT,
+    amountIn DECIMAL(10,2) NOT NULL,
+    dateIn DATE NOT NULL,
+    descriptionIn VARCHAR(250) DEFAULT 'Unknown',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
