@@ -15,3 +15,12 @@ CREATE TABLE IF NOT EXISTS incomes(
     descriptionIn VARCHAR(250) DEFAULT 'Unknown',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create expenses table
+CREATE TABLE IF NOT EXISTS expenses (
+    idEx INT PRIMARY KEY AUTO_INCREMENT,
+    amountEx DECIMAL(10,2) NOT NULL,
+    dateEx DATE NOT NULL,
+    descriptionEx VARCHAR(250) DEFAULT 'Unknown',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

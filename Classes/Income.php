@@ -1,8 +1,11 @@
 <?php
-require '../Classes/Database.php';
+require 'Database.php';
 
 class Incomes{
     private $conn;
+    private float $amountIn;
+    private string $dateIn;
+    private string $descriptionIn;
 
     public function __construct(){
         $this->conn = Database::connect();
@@ -10,16 +13,16 @@ class Incomes{
 
     public function addIncome(){
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $amount = $_POST['amountIn'] ?? '';
-            $date = $_POST['dateIn'] ?? '';
-            $description = $_POST['descriptionIn'] ?? '';
+            $this->amountIn = $_POST['amountIn'] ?? '';
+            $this->dateIn = $_POST['dateIn'] ?? '';
+            $this->descriptionIn = $_POST['descriptionIn'] ?? '';
 
-            if (!empty($amount) && !empty($date)) {
-                $amount = floatval($amount);
-                $date = $conn->real_escape_string($date);
-                $description = $conn->real_escape_string($description);
+            if (!empty($this->amountIn) && !empty($this->dateIn)) {
+                $amount = floatval($this->amountIn);
+                $date = $this->conn->real_escape_string($this->dateIn);
+                $description = $this->conn->real_escape_string($this->descriptionIn);
                 
-                $stmt = $conn->prepare("INSERT INTO incomes (amountIn, dateIn, descriptionIn) VALUES (?, ?, ?)");
+                $stmt = $this->conn->prepare("INSERT INTO incomes (amountIn, dateIn, descriptionIn) VALUES (?, ?, ?)");
                 $stmt->bind_param("dss", $amount, $date, $description);
                 
                 if ($stmt->execute()) {
@@ -31,9 +34,12 @@ class Incomes{
             } else {
                 header("Location: ../incomes/list.php?error=missing_fields");
             }
-        } else {
-            header("Location: ../incomes/list.php");
         }
+    }
+
+    public function AfficheIncome():mysqli_result{
+        $result = $this->conn->query("SELECT * FROM incomes ORDER BY dateIn DESC");
+        return $result;
     }
 
     // public function updateIncome(){
