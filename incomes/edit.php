@@ -6,12 +6,7 @@ $std = new Incomes();
 // $dateIn = $_POST['dateIn'] ?? null;
 // $descriptionIn = $_POST['descriptionIn'] ?? null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $res = $std->updateIncome(
-        $_GET['id'],
-        $_POST['amountIn'],
-        $_POST['dateIn'],
-        $_POST['descriptionIn']
-    );
+    $res = $std->updateIncome( $_GET['id'], $_POST['amountIn'], $_POST['dateIn'], $_POST['descriptionIn']);
     if ($res) {
         header("Location: list.php?message=income_updated");
         exit();

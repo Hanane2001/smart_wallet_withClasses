@@ -39,9 +39,27 @@ class Expenses{
         $result = $this->conn->query("SELECT * FROM expenses ORDER BY dateEx DESC");
         return $result;
     }
-    public function updateExpense(){
 
+    public function updateExpense(int $id,float $amountEx,string $dateEx,string $descriptionEx): bool {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return false;
+        }
+        if (!$id || !$amountEx || !$dateEx) {
+            return false;
+        }
+        $stmt = $this->conn->prepare("UPDATE expenses SET amountEx = ?, dateEx = ?, descriptionEx = ? WHERE idEx = ?");
+        $stmt->bind_param("dssi", $amountEx, $dateEx, $descriptionEx, $id);
+        $success = $stmt->execute();
+        $stmt->close();
+        return $success;
     }
+    public function UpdateEx(int $id): mysqli_result {
+        $stmt = $this->conn->prepare("SELECT * FROM expenses WHERE idEx = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        return $stmt->get_result();
+    }
+
     public function deleteExpense(){
 
     }
