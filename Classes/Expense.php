@@ -45,12 +45,12 @@ class Expenses{
     public function deleteExpense(){
 
     }
-    public function checkLimit(){
+    // public function checkLimit(){
 
-    }
-    public function getCategoryTotal(){
+    // }
+    // public function getCategoryTotal(){
 
-    }
+    // }
 
 }
 Database::closeConnection();

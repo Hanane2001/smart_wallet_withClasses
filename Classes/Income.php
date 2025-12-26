@@ -42,9 +42,26 @@ class Incomes{
         return $result;
     }
 
-    // public function updateIncome(){
+    public function updateIncome(int $id,float $amountIn,string $dateIn,string $descriptionIn): bool {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return false;
+        }
+        if (!$id || !$amountIn || !$dateIn) {
+            return false;
+        }
+        $stmt = $this->conn->prepare("UPDATE incomes SET amountIn = ?, dateIn = ?, descriptionIn = ? WHERE idIn = ?");
+        $stmt->bind_param("dssi", $amountIn, $dateIn, $descriptionIn, $id);
+        $success = $stmt->execute();
+        $stmt->close();
+        return $success;
+    }
+    public function UpdateIn(int $id): mysqli_result {
+        $stmt = $this->conn->prepare("SELECT * FROM incomes WHERE idIn = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        return $stmt->get_result();
+    }
 
-    // }
     // public function deleteIncome(){
 
     // }
