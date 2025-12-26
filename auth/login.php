@@ -1,8 +1,27 @@
-<?php 
-require '../Classes/User.php';
-$users = new Users();
-$users->login();
+<?php
+require_once '../Classes/User.php';
+
+if (User::isLoggedIn()) {
+    header("Location: ../dashboard.php");
+    exit();
+}
+
+$user = new User();
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+    
+    if ($user->login($email, $password)) {
+        header("Location: ../dashboard.php");
+        exit();
+    } else {
+        $error = "Invalid email or password";
+    }
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,26 +43,36 @@ $users->login();
             </div>
 
             <!-- Afficher les erreurs -->
-            <?php 
-            $err = [];
-            if(isset($_SESSION['errors'])) {
-                $err = $_SESSION['errors'];
-                unset($_SESSION['errors']);
-            } elseif(!empty($errors)) {
-                $err = $errors;
-            }
-            if(!empty($err)): 
-            ?>
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                <ul class="list-disc list-inside">
-                    <?php foreach($err as $error): ?>
-                    <li><?php echo htmlspecialchars($error); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
+            <?php if (isset($_SESSION['errors'])): ?>
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <ul class="list-disc list-inside">
+                        <?php foreach ($_SESSION['errors'] as $err): ?>
+                            <li><?php echo htmlspecialchars($err); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <?php unset($_SESSION['errors']); ?>
+            <?php elseif (!empty($error)): ?>
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <p><?php echo htmlspecialchars($error); ?></p>
+                </div>
             <?php endif; ?>
 
-            <form class="mt-8 space-y-6" action="login.php" method="POST">
+            <?php if (isset($_GET['message'])): ?>
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                    <p>
+                        <?php 
+                        $messages = [
+                            'registered' => 'Registration successful! Please login.',
+                            'logout' => 'You have been logged out successfully.'
+                        ];
+                        echo $messages[$_GET['message']] ?? 'Operation successful!';
+                        ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <form class="mt-8 space-y-6" method="POST">
                 <div class="rounded-md shadow-sm -space-y-px">
                     <div class="mb-4">
                         <label for="email" class="block text-gray-700 mb-2">Email Address</label>

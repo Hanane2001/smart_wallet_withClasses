@@ -1,8 +1,26 @@
-<?php 
-require '../Classes/User.php';
-$users = new Users();
-$users->register();
+<?php
+require_once '../Classes/User.php';
+
+if (User::isLoggedIn()) {
+    header("Location: ../dashboard.php");
+    exit();
+}
+
+$user = new User();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $fullName = $_POST['fullName'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $confirmPassword = $_POST['confirmPassword'] ?? '';
+    
+    if ($user->register($fullName, $email, $password, $confirmPassword)) {
+        header("Location: login.php?message=registered");
+        exit();
+    }
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,32 +41,33 @@ $users->register();
                 <p class="mt-2 text-center text-sm text-gray-600">Or <a href="login.php" class="font-medium text-blue-600 hover:text-blue-500">sign in to existing account</a></p>
             </div>
 
-            <!-- teste les erreurs -->
-            <?php if(isset($_SESSION['errors'])):?>
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            <ul class="list-disc list-inside">
-                <?php foreach($_SESSION['errors'] as $error):?>
-                <li><?php echo htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
-            </ul>
-            <?php unset($_SESSION['errors']);?>
+            <!-- Afficher les erreurs -->
+            <?php if (isset($_SESSION['errors'])): ?>
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <ul class="list-disc list-inside">
+                        <?php foreach ($_SESSION['errors'] as $error): ?>
+                            <li><?php echo htmlspecialchars($error); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <?php unset($_SESSION['errors']); ?>
             <?php endif; ?>
 
-            <form class="mt-8 space-y-6" action="register.php" method="POST">
+            <form class="mt-8 space-y-6" method="POST">
                 <div class="rounded-md shadow-sm -space-y-px">
                     <div class="mb-4">
                         <label for="fullName" class="block text-gray-700 mb-2">Full Name</label>
-                        <input id="fullName" name="fullName" type="text" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                        <input id="fullName" name="fullName" type="text" required value="<?php echo isset($_POST['fullName']) ? htmlspecialchars($_POST['fullName']) : ''; ?>" class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
                     </div>
                     
                     <div class="mb-4">
                         <label for="email" class="block text-gray-700 mb-2">Email Address</label>
-                        <input id="email" name="email" type="email" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                        <input id="email" name="email" type="email" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
                     </div>
                     
                     <div class="mb-4">
                         <label for="password" class="block text-gray-700 mb-2">Password</label>
-                        <input id="password" name="password" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                        <input id="password" name="password" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="At least 6 characters">
                     </div>
                     
                     <div>
