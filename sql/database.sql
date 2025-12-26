@@ -2,6 +2,10 @@
 CREATE DATABASE IF NOT EXISTS Smart_Wallet_Classe;
 USE Smart_Wallet_Classe;
 
+DROP TABLE users;
+DROP TABLE incomes;
+DROP TABLE expenses;
+DROP TABLE categories;
 -- Table users
 CREATE TABLE IF NOT EXISTS users(
     idUser INT PRIMARY KEY AUTO_INCREMENT,
