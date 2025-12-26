@@ -1,81 +1,132 @@
 <?php
-require 'Database.php';
+require_once 'Database.php';
 
-class Incomes{
+class Income {
     private $conn;
-    private float $amountIn;
-    private string $dateIn;
-    private string $descriptionIn;
-
-    public function __construct(){
-        $this->conn = Database::connect();
+    private $id;
+    private $amount;
+    private $date;
+    private $description;
+    private $userId;
+    private $categoryId;
+    
+    public function __construct() {
+        $db = Database::getInstance();
+        $this->conn = $db->getConnection();
     }
 
-    public function addIncome(){
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->amountIn = $_POST['amountIn'] ?? '';
-            $this->dateIn = $_POST['dateIn'] ?? '';
-            $this->descriptionIn = $_POST['descriptionIn'] ?? '';
-
-            if (!empty($this->amountIn) && !empty($this->dateIn)) {
-                $amount = floatval($this->amountIn);
-                $date = $this->conn->real_escape_string($this->dateIn);
-                $description = $this->conn->real_escape_string($this->descriptionIn);
-                
-                $stmt = $this->conn->prepare("INSERT INTO incomes (amountIn, dateIn, descriptionIn) VALUES (?, ?, ?)");
-                $stmt->bind_param("dss", $amount, $date, $description);
-                
-                if ($stmt->execute()) {
-                    header("Location: ../incomes/list.php?message=income_added");
-                } else {
-                    header("Location: ../incomes/list.php?error=insert_failed");
-                }
-                $stmt->close();
-            } else {
-                header("Location: ../incomes/list.php?error=missing_fields");
-            }
-        }
-    }
-
-    public function AfficheIncome():mysqli_result{
-        $result = $this->conn->query("SELECT * FROM incomes ORDER BY dateIn DESC");
-        return $result;
-    }
-
-    public function updateIncome(int $id,float $amountIn,string $dateIn,string $descriptionIn): bool {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    public function create($amount, $date, $description, $userId, $categoryId = null) {
+        if (empty($amount) || empty($date) || empty($userId)) {
             return false;
         }
-        if (!$id || !$amountIn || !$dateIn) {
-            return false;
-        }
-        $stmt = $this->conn->prepare("UPDATE incomes SET amountIn = ?, dateIn = ?, descriptionIn = ? WHERE idIn = ?");
-        $stmt->bind_param("dssi", $amountIn, $dateIn, $descriptionIn, $id);
-        $success = $stmt->execute();
-        $stmt->close();
-        return $success;
-    }
-    public function UpdateIn(int $id): mysqli_result {
-        $stmt = $this->conn->prepare("SELECT * FROM incomes WHERE idIn = ?");
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        return $stmt->get_result();
+        $stmt = $this->conn->prepare("INSERT INTO incomes (amountIn, dateIn, descriptionIn, user_id, category_id) VALUES (?, ?, ?, ?, ?)");
+        return $stmt->execute([$amount, $date, $description, $userId, $categoryId]);
     }
 
-    public function deleteIncome(int $id): bool{
-        if (!isset($id) || empty($id)) {
-            return false;
+    public function getAll($userId, $limit = null) {
+        $sql = "SELECT i.*, c.nameCat as category_name 
+                FROM incomes i 
+                LEFT JOIN categories c ON i.category_id = c.idCat 
+                WHERE i.user_id = ? 
+                ORDER BY i.dateIn DESC, i.created_at DESC";
+        
+        if ($limit) {
+            $sql .= " LIMIT " . intval($limit);
         }
-        $id = intval($id);
-        $stmt = $this->conn->prepare("DELETE FROM incomes WHERE idIn = ?");
-        $stmt->bind_param("i", $id);
-        $success= $stmt->execute();
-        $stmt->close();
-        return $success;
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
     }
-    // public function getMonthlyTotal(){
 
-    // }
+    public function getById($id, $userId = null) {
+        $sql = "SELECT i.*, c.nameCat as category_name 
+                FROM incomes i 
+                LEFT JOIN categories c ON i.category_id = c.idCat 
+                WHERE i.idIn = ?";
+        
+        $params = [$id];
+        
+        if ($userId) {
+            $sql .= " AND i.user_id = ?";
+            $params[] = $userId;
+        }
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetch();
+    }
+ 
+    public function getByCategory($categoryId, $userId) {
+        $stmt = $this->conn->prepare(
+            "SELECT i.*, c.nameCat as category_name 
+             FROM incomes i 
+             LEFT JOIN categories c ON i.category_id = c.idCat 
+             WHERE i.category_id = ? AND i.user_id = ? 
+             ORDER BY i.dateIn DESC"
+        );
+        $stmt->execute([$categoryId, $userId]);
+        return $stmt->fetchAll();
+    }
+ 
+    public function update($id, $amount, $date, $description, $categoryId, $userId = null) {
+        $sql = "UPDATE incomes SET amountIn = ?, dateIn = ?, descriptionIn = ?, category_id = ? WHERE idIn = ?";
+        $params = [$amount, $date, $description, $categoryId, $id];
+        
+        if ($userId) {
+            $sql .= " AND user_id = ?";
+            $params[] = $userId;
+        }
+        
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    public function delete($id, $userId = null) {
+        $sql = "DELETE FROM incomes WHERE idIn = ?";
+        $params = [$id];
+        
+        if ($userId) {
+            $sql .= " AND user_id = ?";
+            $params[] = $userId;
+        }
+        
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    public function getTotal($userId, $month = null, $year = null) {
+        $sql = "SELECT SUM(amountIn) as total FROM incomes WHERE user_id = ?";
+        $params = [$userId];
+        
+        if ($month && $year) {
+            $sql .= " AND MONTH(dateIn) = ? AND YEAR(dateIn) = ?";
+            $params[] = $month;
+            $params[] = $year;
+        } elseif ($month) {
+            $sql .= " AND MONTH(dateIn) = ? AND YEAR(dateIn) = YEAR(CURDATE())";
+            $params[] = $month;
+        } elseif ($year) {
+            $sql .= " AND YEAR(dateIn) = ?";
+            $params[] = $year;
+        }
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch();
+        return $result['total'] ?? 0;
+    }
+
+    public function getMonthlyTotal($userId, $year = null) {
+        $year = $year ?? date('Y');
+        $stmt = $this->conn->prepare(
+            "SELECT MONTH(dateIn) as month, SUM(amountIn) as total 
+             FROM incomes 
+             WHERE user_id = ? AND YEAR(dateIn) = ? 
+             GROUP BY MONTH(dateIn) 
+             ORDER BY month"
+        );
+        $stmt->execute([$userId, $year]);
+        return $stmt->fetchAll();
+    }
 }
-Database::closeConnection();
-?>
