@@ -1,24 +1,38 @@
 <?php
-require '../Classes/Expense.php';
-$std = new Expenses();
-// $id = $_POST['idEx'] ?? null;
-// $amountEx = $_POST['amountEx'] ?? null;
-// $dateEx = $_POST['dateEx'] ?? null;
-// $descriptionEx = $_POST['descriptionEx'] ?? null;
+require_once '../Classes/Expense.php';
+require_once '../Classes/Category.php';
+require_once '../auth/AuthCheck.php';
+
+$userId = checkAuth();
+$expense = new Expense();
+$category = new Category();
+
+$id = $_GET['id'] ?? null;
+if (!$id) {
+    header("Location: list.php?error=no_id");
+    exit();
+}
+
+$expenseData = $expense->getById($id, $userId);
+if (!$expenseData) {
+    header("Location: list.php?error=not_found");
+    exit();
+}
+
+$expenseCategories = $category->getByType('expense', $userId);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $res = $std->updateExpense($_GET['id'],$_POST['amountEx'],$_POST['dateEx'],$_POST['descriptionEx']);
-    if ($res) {
+    $success = $expense->update($id,$_POST['amountEx'],$_POST['dateEx'],$_POST['descriptionEx'],$_POST['category_id'] ?? null,$userId);
+    if ($success) {
         header("Location: list.php?message=expense_updated");
         exit();
     } else {
-        header("Location: list.php?error=update_failed");
+        header("Location: edit.php?id=$id&error=update_failed");
         exit();
     }
 }
-
-$result = $std->UpdateEx($_GET['id']);
-$expense = $result->fetch_assoc();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,32 +43,79 @@ $expense = $result->fetch_assoc();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
+    <nav class="bg-blue-600 shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-wallet text-white text-2xl"></i>
+                    <span class="text-white text-xl font-bold">SmartBudget</span>
+                </div>
+                <div id="navLinks" class="hidden md:flex space-x-6">
+                    <a href="../dashboard.php" class="text-white hover:text-blue-200">Dashboard</a>
+                    <a href="../incomes/list.php" class="text-white hover:text-blue-200">Incomes</a>
+                    <a href="list.php" class="text-white font-bold">Expenses</a>
+                    <a href="../auth/logout.php" class="text-white hover:text-blue-200">Logout</a>
+                </div>
+                <button id="menu_tougle" class="md:hidden text-white"><i class="fas fa-bars text-2xl"></i></button>
+            </div>
+        </div>
+    </nav>
+
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-2xl mx-auto">
             <div class="mb-6">
-                <a href="list.php" class="text-blue-500 hover:text-blue-600"><i class="fas fa-arrow-left mr-2"></i>Back to Expenses</a>
+                <a href="list.php" class="text-blue-500 hover:text-blue-600">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Expenses
+                </a>
             </div>
-            
+
+            <!-- Afficher les erreurs -->
+            <?php if (isset($_GET['error'])): ?>
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                    <p>
+                        <?php 
+                        $errors = [
+                            'update_failed' => 'Failed to update expense. Please try again.',
+                            'not_found' => 'Expense not found.',
+                            'no_id' => 'No expense ID provided.'
+                        ];
+                        echo $errors[$_GET['error']] ?? 'An error occurred!';
+                        ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
             <div class="bg-white rounded-xl shadow p-8">
                 <h1 class="text-2xl font-bold text-gray-800 mb-6">Edit Expense</h1>
                 
                 <form method="POST">
-                    <input type="hidden" name="idEx" value="<?php echo $expense['idEx']; ?>">
-                    
                     <div class="space-y-6">
                         <div>
                             <label class="block text-gray-700 mb-2">Amount ($)</label>
-                            <input type="number" step="0.01" name="amountEx" required value="<?php echo $expense['amountEx']; ?>" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <input type="number" step="0.01" name="amountEx" required value="<?php echo htmlspecialchars($expenseData['amountEx']); ?>" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         
                         <div>
                             <label class="block text-gray-700 mb-2">Date</label>
-                            <input type="date" name="dateEx" required value="<?php echo $expense['dateEx']; ?>" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <input type="date" name="dateEx" required value="<?php echo htmlspecialchars($expenseData['dateEx']); ?>" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Category</label>
+                            <select name="category_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select Category</option>
+                                <?php foreach ($expenseCategories as $cat): ?>
+                                    <option value="<?php echo $cat['idCat']; ?>" 
+                                        <?php echo ($expenseData['category_id'] == $cat['idCat']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($cat['nameCat']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         
                         <div>
                             <label class="block text-gray-700 mb-2">Description</label>
-                            <input type="text" name="descriptionEx" value="<?php echo htmlspecialchars($expense['descriptionEx']); ?>" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <input type="text" name="descriptionEx" value="<?php echo htmlspecialchars($expenseData['descriptionEx']); ?>" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         
                         <div class="flex space-x-3 pt-4">
@@ -66,5 +127,6 @@ $expense = $result->fetch_assoc();
             </div>
         </div>
     </div>
+<script src="../assets/js/main.js"></script>
 </body>
 </html>

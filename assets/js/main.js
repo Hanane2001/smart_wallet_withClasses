@@ -50,7 +50,9 @@ function getMessageText(message) {
         'income_deleted': 'Income deleted successfully!',
         'expense_added': 'Expense added successfully!',
         'expense_updated': 'Expense updated successfully!',
-        'expense_deleted': 'Expense deleted successfully!'
+        'expense_deleted': 'Expense deleted successfully!',
+        'registered': 'Registration successful! Please login.',
+        'logout': 'You have been logged out successfully.'
     };
     return messages[message] || 'Operation completed successfully!';
 }

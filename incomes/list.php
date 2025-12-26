@@ -1,21 +1,14 @@
 <?php
 require_once '../Classes/Income.php';
 require_once '../Classes/Category.php';
-require_once '../middleware/auth.php';
+require_once '../auth/AuthCheck.php';
 
 $userId = checkAuth();
 $income = new Income();
 $category = new Category();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
-    $success = $income->create(
-        $_POST['amountIn'],
-        $_POST['dateIn'],
-        $_POST['descriptionIn'],
-        $userId,
-        $_POST['category_id'] ?? null
-    );
-    
+    $success = $income->create($_POST['amountIn'],$_POST['dateIn'],$_POST['descriptionIn'],$userId,$_POST['category_id'] ?? null);
     if ($success) {
         header("Location: list.php?message=income_added");
         exit();

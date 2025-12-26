@@ -1,20 +1,15 @@
-<?php 
-// include 'config/database.php';
-// $userId = checkAuth();
-// $total_income_result = $conn->query("SELECT SUM(amountIn) as total FROM incomes WHERE idUser = $userId");
-// $total_income = $total_income_result->fetch_assoc()['total'] ?? 0;
+<?php
+require_once 'Classes/Dashboard.php';
+require_once 'auth/AuthCheck.php';
+$userId = checkAuth();
+$dashboard = new Dashboard($userId);
 
-// $total_expense_result = $conn->query("SELECT SUM(amountEx) as total FROM expenses WHERE idUser = $userId");
-// $total_expense = $total_expense_result->fetch_assoc()['total'] ?? 0;
-
-// $balance = $total_income - $total_expense;
-
-// $month_InEx = date('Y-m');
-// $month_income_result = $conn->query("SELECT SUM(amountIn) as total FROM incomes WHERE idUser = $userId AND DATE_FORMAT(dateIn, '%Y-%m') = '$month_InEx'");
-// $month_income = $month_income_result->fetch_assoc()['total'] ?? 0;
-
-// $month_expense_result = $conn->query("SELECT SUM(amountEx) as total FROM expenses WHERE idUser = $userId AND DATE_FORMAT(dateEx, '%Y-%m') = '$month_InEx'");
-// $month_expense = $month_expense_result->fetch_assoc()['total'] ?? 0;
+$totalIncome = (new Income())->getTotal($userId);
+$totalExpense = (new Expense())->getTotal($userId);
+$balance = $dashboard->getBalance();
+$monthStats = $dashboard->getCurrentMonthStats();
+$recentTransactions = $dashboard->getRecentTransactions();
+$chartData = $dashboard->getChartData();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,14 +40,13 @@
     </nav>
 
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">Financial Dashboard</h1>
 
         <div class="grid md:grid-cols-4 gap-6 mb-8">
             <div class="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-500 text-sm">Total Incomes</p>
-                        <h3 class="text-2xl font-bold text-gray-800">$<?php //echo number_format($total_income, 2); ?></h3>
+                        <h3 class="text-2xl font-bold text-gray-800">$<?php echo number_format($totalIncome, 2); ?></h3>
                     </div>
                 </div>
             </div>
@@ -61,7 +55,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-500 text-sm">Total Expenses</p>
-                        <h3 class="text-2xl font-bold text-gray-800">$<?php //echo number_format($total_expense, 2); ?></h3>
+                        <h3 class="text-2xl font-bold text-gray-800">$<?php echo number_format($totalExpense, 2); ?></h3>
                     </div>
                 </div>
             </div>
@@ -70,7 +64,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-500 text-sm">Current Balance</p>
-                        <h3 class="text-2xl font-bold <?php //echo $balance >= 0 ? 'text-green-600' : 'text-red-600'; ?>">$<?php //echo number_format($balance, 2); ?></h3>
+                        <h3 class="text-2xl font-bold <?php echo $balance >= 0 ? 'text-green-600' : 'text-red-600'; ?>">$<?php echo number_format($balance, 2); ?></h3>
                     </div>
                 </div>
             </div>
@@ -79,7 +73,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-500 text-sm">This Month</p>
-                        <h3 class="text-xl font-bold text-gray-800">+$<?php //echo number_format($month_income, 2); ?> / -$<?php //echo number_format($month_expense, 2); ?></h3>
+                        <h3 class="text-xl font-bold text-gray-800">+$<?php echo number_format($monthStats['income'], 2); ?> / -$<?php echo number_format($monthStats['expense'], 2); ?></h3>
                     </div>
                 </div>
             </div>
@@ -102,9 +96,10 @@
                 <a href="expenses/list.php" class="inline-block bg-white text-red-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">Go to Expenses</a>
             </div>
         </div>
-        <!-- chartjs -->
-        <div class="w-full md:w-[70%] lg:w-[50%] mx-auto flex flex-col items-center">
-            <h2 class="text-3xl font-bold text-gray-800">Budget Summary</h2>
+
+        <!-- Graphique Chart.js -->
+        <div class="w-full md:w-[70%] lg:w-[50%] mx-auto flex flex-col items-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Monthly Overview</h2>
             <canvas class="mt-5 mb-5 w-full" id="chartjs_bar"></canvas>
         </div>
    
@@ -116,32 +111,28 @@
                         <tr>
                             <th class="px-4 py-3">Date</th>
                             <th class="px-4 py-3">Description</th>
+                            <th class="px-4 py-3">Category</th>
                             <th class="px-4 py-3">Type</th>
                             <th class="px-4 py-3">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php
-                        //   $recent_incomes = $conn->query("SELECT *, 'Income' as type FROM incomes ORDER BY dateIn DESC LIMIT 3");
-                        //   while($row = $recent_incomes->fetch_assoc()): ?>
-                          <tr class="border-b">
-                              <td class="px-4 py-3"><?php //echo $row['dateIn']; ?></td>
-                              <td class="px-4 py-3"><?php //echo $row['descriptionIn']; ?></td>
-                              <td class="px-4 py-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Income</span></td>
-                              <td class="px-4 py-3 text-green-600 font-semibold">+$<?php //echo number_format($row['amountIn'], 2); ?></td>
-                          </tr>
-                        <?php //endwhile; ?>
-                        
-                        <?php
-                        //   $recent_expenses = $conn->query("SELECT *, 'Expense' as type FROM expenses ORDER BY dateEx DESC LIMIT 3");
-                        //   while($row = $recent_expenses->fetch_assoc()): ?>
-                          <tr class="border-b">
-                              <td class="px-4 py-3"><?php //echo $row['dateEx']; ?></td>
-                              <td class="px-4 py-3"><?php //echo $row['descriptionEx']; ?></td>
-                              <td class="px-4 py-3"><span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">Expense</span></td>
-                              <td class="px-4 py-3 text-red-600 font-semibold">-$<?php //echo number_format($row['amountEx'], 2); ?></td>
-                          </tr>
-                        <?php //endwhile; ?>
+                        <?php foreach ($recentTransactions as $transaction): ?>
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-4 py-3"><?php echo $transaction['date']; ?></td>
+                            <td class="px-4 py-3"><?php echo htmlspecialchars($transaction['description']); ?></td>
+                            <td class="px-4 py-3"><?php echo $transaction['category']; ?></td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs <?php echo $transaction['type'] == 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                    <?php echo ucfirst($transaction['type']); ?>
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 font-semibold <?php echo $transaction['type'] == 'income' ? 'text-green-600' : 'text-red-600'; ?>">
+                                <?php echo $transaction['type'] == 'income' ? '+' : '-'; ?>
+                                $<?php echo number_format($transaction['amount'], 2); ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -151,31 +142,42 @@
     <script src="//code.jquery.com/jquery-1.9.1.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
     <script type="text/javascript">
-      var ctx = document.getElementById("chartjs_bar").getContext('2d');
-      var gradientGreen = ctx.createLinearGradient(0, 0, 0, 400);
-      gradientGreen.addColorStop(0, "#22c55e"); 
-      gradientGreen.addColorStop(1, "#16a34a"); 
+        var ctx = document.getElementById("chartjs_bar").getContext('2d');
+        var gradientGreen = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientGreen.addColorStop(0, "#22c55e"); 
+        gradientGreen.addColorStop(1, "#16a34a"); 
 
-      var gradientRed = ctx.createLinearGradient(0, 0, 0, 400);
-      gradientRed.addColorStop(0, "#ef4444");
-      gradientRed.addColorStop(1, "#b91c1c");
+        var gradientRed = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientRed.addColorStop(0, "#ef4444");
+        gradientRed.addColorStop(1, "#b91c1c");
 
-                var myChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ["Total Income", "Total Expense"],
-                        datasets: [{
-                            data: [<?php //echo $total_income; ?>, <?php //echo $total_expense; ?>],
-                            backgroundColor: [gradientGreen,gradientRed]
-                        }]
-                    },
-                    options: {
-                      legend: {
-                          display: false
-                      }
-                  }
-                });
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: <?php echo json_encode($chartData['labels']); ?>,
+                datasets: [{
+                    label: 'Income',
+                    data: <?php echo json_encode($chartData['income']); ?>,
+                    backgroundColor: gradientGreen
+                }, {
+                    label: 'Expense',
+                    data: <?php echo json_encode($chartData['expense']); ?>,
+                    backgroundColor: gradientRed
+                }]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true,
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }]
+                }
+            }
+        });
     </script>
 </body>
 </html>
-<?php //closeConnection($conn); ?>
