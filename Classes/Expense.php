@@ -60,8 +60,16 @@ class Expenses{
         return $stmt->get_result();
     }
 
-    public function deleteExpense(){
-
+    public function deleteExpense(int $id): bool{
+        if (!isset($id) || empty($id)) {
+            return false;
+        }
+        $id = intval($id);
+        $stmt = $this->conn->prepare("DELETE FROM expenses WHERE idEx = ?");
+        $stmt->bind_param("i", $id);
+        $success= $stmt->execute();
+        $stmt->close();
+        return $success;
     }
     // public function checkLimit(){
 
